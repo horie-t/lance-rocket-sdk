@@ -11,7 +11,7 @@ extern void trap_entry();
 
 static unsigned long get_cpu_freq()
 {
-  return 65000000;
+  return 32500000;
 }
 
 unsigned long get_timer_freq()
