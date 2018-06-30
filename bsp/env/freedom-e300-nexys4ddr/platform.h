@@ -116,7 +116,7 @@
 #define PLIC_NUM_PRIORITIES 7
 
 #define HAS_BOARD_BUTTONS
-#include "hifive1.h"
+#include "nexys4ddr.h"
 
 unsigned long get_timer_freq(void);
 uint64_t get_timer_value(void);
