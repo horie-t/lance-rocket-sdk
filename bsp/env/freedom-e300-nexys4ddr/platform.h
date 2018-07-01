@@ -13,6 +13,7 @@
 #include "sifive/devices/gpio.h"
 #include "sifive/devices/plic.h"
 #include "sifive/devices/pwm.h"
+#include "sifive/devices/seg7.h"
 #include "sifive/devices/spi.h"
 #include "sifive/devices/uart.h"
 
@@ -28,6 +29,7 @@
 #define UART0_CTRL_ADDR _AC(0x10013000,UL)
 #define SPI0_CTRL_ADDR _AC(0x10014000,UL)
 #define PWM0_CTRL_ADDR _AC(0x10015000,UL)
+#define SEG7_CTRL_ADDR _AC(0x10017000,UL)
 #define UART1_CTRL_ADDR _AC(0x10023000,UL)
 #define SPI1_CTRL_ADDR _AC(0x10024000,UL)
 #define PWM1_CTRL_ADDR _AC(0x10025000,UL)
@@ -99,6 +101,7 @@
 #define PWM0_REG(offset) _REG32(PWM0_CTRL_ADDR, offset)
 #define PWM1_REG(offset) _REG32(PWM1_CTRL_ADDR, offset)
 #define PWM2_REG(offset) _REG32(PWM2_CTRL_ADDR, offset)
+#define SEG7_REG(offset) _REG32(SEG7_CTRL_ADDR, offset)
 #define SPI0_REG(offset) _REG32(SPI0_CTRL_ADDR, offset)
 #define SPI1_REG(offset) _REG32(SPI1_CTRL_ADDR, offset)
 #define SPI2_REG(offset) _REG32(SPI2_CTRL_ADDR, offset)
