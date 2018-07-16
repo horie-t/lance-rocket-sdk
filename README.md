@@ -1,56 +1,57 @@
+# Freedom E SDK移植用フォークプロジェクト
+
+Freedom E SDKをSiFiveがサポートしているFPGAボード以外のボードに移植、日本語説明の追加のプロジェクトです。
+以下、和訳。
+
 # README #
 
-This repository, maintained by SiFive, Inc, makes it easy to get started developing software for the Freedom E RISC-V platform. 
+このリポジトリは、SiFive, Incによってメンテナンスされた、Freedom E RISC-Vプラットフォーム向けソフトウェアの開発を容易にするものです。
 
-### Contents ###
+### 内容 ###
 
-* RISC-V Software Toolchain 
-* RISC-V Debugging Toolchain
-* Board Support Packages for FE310 and Development Kits
-* A Few Example Programs
+* RISC-V ソフトウェア・ツールチェイン
+* RISC-V デバッグ・ツールチェイン
+* FE310用ボード・サポート・パッケージと、開発キット
+* いくつかの実例のプログラム
 
-### Setting up the SDK ###
+### SDKの環境構築 ###
 
-First, clone this repository:
+第一に、このリポジトリをクローンします:
 
 ```
-git clone --recursive https://github.com/sifive/freedom-e-sdk.git
+git clone --recursive https://github.com/horie-t/freedom-e-sdk.git
 ```
+(訳注: ここでは、このフォークリポジトリをクローンするように記述しています。)
 
-To see Makefile options:
+Makeファイルのオプションを見るには:
 
 ```
 cd freedom-e-sdk
 make help
 ```
 
-#### Building Tools from Source ####
+#### ソースコードからツールをビルド ####
 
-Ubuntu packages needed:
+Ubuntuのパッケージで必要なもの:
 
 	$ sudo apt-get install autoconf automake libmpc-dev libmpfr-dev libgmp-dev gawk bison flex texinfo libtool libusb-1.0-0-dev make g++ pkg-config libexpat1-dev zlib1g-dev  
 
-Next, build the tools:
+次に、ツールをビルドします:
 
 ```
 cd freedom-e-sdk
 make tools [BOARD=freedom-e300-hifive1]
 ```
 
-If your machine has enough resources, you can speed up the build process by adding `-j n` to `make`, where `n` is the number of processors of your build system.
+あなたのマシンに余力があるなら、`make` に `-j n` を加えてビルド処理の速度アップができます。ここで `n` は、あなたビルドシステムで使えるプロセッサの数です。
 
+#### ビルド済みバイナリツールの利用 ####
 
-#### Using Pre-Built Binary Tools ####
-
-If you would like to avoid compiling the tools from source, they are
-available as pre-built binaries from
+ソースからツールをコンパイルしたくない場合は、下記からビルド済みバイナリが利用できます。
 
 https://www.sifive.com/products/tools
 
-For OpenOCD and/or RISC-V GNU Toolchain,
-download the .tar.gz for your platform, and unpack it to
-your desired location. Then, use the `RISCV_PATH` and `RISCV_OPENOCD_PATH`
-variables when attempting to use the tools:
+OpenOCD、RISC-V GNU Toolchainについては、あなたのプラットフォームにあった、.tar.gzをダウンロードし、配置したい場所で伸長して下さい。そして、 `RISCV_PATH` と `RISCV_OPENOCD_PATH` 環境変数を設定して、ツールを使用します。
 
 ```
 cp openocd-<date>-<platform>.tar.gz /my/desired/location/
@@ -62,9 +63,9 @@ export RISCV_OPENOCD_PATH=/my/desired/location/openocd
 export RISCV_PATH=/my/desired/location/riscv64-unknown-elf-gcc-<date>-<version>
 ```
 
-### Updating your SDK ###
+### SDKの更新 ###
 
-If you'd like to update your SDK to the latest version:
+SDKを最後のバージョンに更新したい場合:
 
 ```
 cd freedom-e-sdk
@@ -72,22 +73,23 @@ git pull origin master
 git submodule update --init --recursive
 ```
 
-If you would like to recompile the entire toolchain after performing the above:
+上記の実施後、全ツールチェインを再コンパイルしたい場合:
 
 ```
 make uninstall
 make tools
 ```
-### Using the Tools ###
 
-To compile a bare-metal RISC-V program:
+### ツールの利用方法 ###
+
+ベアメタルでRISC-Vプログラムをコンパイルするには:
 
 ```
 cd freedom-e-sdk
 make software [PROGRAM=demo_gpio] [BOARD=freedom-e300-hifive1]
 ```
 
-Run `make help` for more commands.
+コマンドの詳細情報については、 `make help` を実行して下さい。
 
 ### Benchmarking ###
 
