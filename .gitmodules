@@ -4,3 +4,6 @@
 [submodule "riscv-gnu-toolchain"]
 	path = riscv-gnu-toolchain
 	url = https://github.com/riscv/riscv-gnu-toolchain.git
+[submodule "lance-rocket"]
+	path = lance-rocket
+	url = https://github.com/horie-t/lance-rocket.git
