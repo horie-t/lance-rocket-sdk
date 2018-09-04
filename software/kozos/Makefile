@@ -7,7 +7,7 @@ LFLAGS=-static -nostdlib -T ld.scr
 
 TARGET=kozos
 
-$(TARGET): startup.s main.c serial.c lib.c
+$(TARGET): startup.s intr.S main.c interrupt.c serial.c lib.c
 	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $^
 
 .PHONY: clean

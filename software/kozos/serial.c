@@ -2,6 +2,11 @@
 #include "serial.h"
 
 #define SERIAL_DEV_NUM 1
+#define SERIAL_PLIC_SOURCE 3
+
+#define PLIC_CTRL_ADDR 		0x0C000000
+#define PLIC_PRIORITY_OFFSET	0x0000
+#define PLIC_ENABLE_OFFSET	0x2000
 
 #define GPIO_CTRL_ADDR  0x10012000
 #define GPIO_IOF_EN     (0x38)
@@ -10,6 +15,12 @@
 
 #define TinyLance_UART_0 ((volatile struct tinylance_uart *) 0x10013000)
 
+/**
+ * UART制御レジスタ構造体
+ *
+ * 割込みは、送信用FIFOのエントリ数がtxcntより小さい時、
+ * または、受信用FIFOのエントリ数がrxcntより大きい時に起きる。
+ */
 struct tinylance_uart {
   volatile uint32_t txdata;	/* 送信データレジスタ(31: full FIFO満杯, 7-0: data)*/
   volatile uint32_t rxdata;	/* 受信データレジスタ(32: empty FIFO空, 7-0: data) */
@@ -17,9 +28,8 @@ struct tinylance_uart {
 				   1: nstop ストップビット数(0が1つ、1が2つ), 0: txen アクティブ状態)*/
   volatile uint32_t rxctrl;	/* 受信制御レジスタ (18:16: rxcnt RxFIFO watermark割り込みトリガしきい値 
 				   0: rxen アクティブ状態) */
-  volatile uint32_t ie;		/* UART割り込み許可(1: 受信データ割り込み rxcntがFIFOを超えた, 0: 送信データ割り込み FIFOエントリ数がtxcntを下回った) */
-  volatile uint32_t ip;		/* UART割り込み保留(1: 受信 watermark以下FIFOにあると0, 
-				   0: 送信 watermark以上FIFOにある状態と0) */
+  volatile uint32_t ie;		/* UART割り込み許可(1: 受信データ割り込み, 0: 送信データ割り込み */
+  volatile uint32_t ip;		/* UART割り込み保留(1: 受信, 0: 送信) */
   volatile uint32_t div;	/* ボー・レート用除数(clock / baud_rate - 1 をセットする) */
 };
 
@@ -54,16 +64,24 @@ int serial_init(int index)
 {
   volatile struct tinylance_uart *uart = regs[index].uart;
 
-  if (index == 0) {
-    *(int32_t *)(GPIO_CTRL_ADDR + GPIO_IOF_SEL) &= ~IOF0_UART0_MASK;
-    *(int32_t *)(GPIO_CTRL_ADDR + GPIO_IOF_EN) |= IOF0_UART0_MASK;
-  } else {
+  if (index != 0) {
     // 不正なindex
     return 1;
   }
 
+  // GPIOの入出力を、UARTにつなげる
+  *(uint32_t *)(GPIO_CTRL_ADDR + GPIO_IOF_SEL) &= ~IOF0_UART0_MASK;
+  *(uint32_t *)(GPIO_CTRL_ADDR + GPIO_IOF_EN) |= IOF0_UART0_MASK;
+  
+  // PLICの優先度、有効化を設定(何故か設定しなくても動く)
+  *(uint32_t *)(PLIC_CTRL_ADDR + PLIC_PRIORITY_OFFSET + SERIAL_PLIC_SOURCE * 4) = 1;
+  *(uint32_t *)(PLIC_CTRL_ADDR + PLIC_ENABLE_OFFSET + SERIAL_PLIC_SOURCE / 32) |= 1 << (SERIAL_PLIC_SOURCE % 32);
+
+  // UARTのボー・レート設定、有効化、割込みの閾値を設定
   uart->div = CPU_CLOCK / UART_BAUT_RATE - 1;
+  uart->txctrl = UART_TXWM(1);
   uart->txctrl |= UART_TXEN;
+  uart->rxctrl = UART_RXWM(0);	/* デフォルト値だけど一応セット */
   uart->rxctrl |= UART_RXEN;
   
   return 0;
@@ -116,4 +134,40 @@ unsigned char serial_recv_byte(int index)
   received_val = -1;
   
   return c;
+}
+
+int serial_intr_is_send_enable(int index)
+{
+  volatile struct tinylance_uart *uart = regs[index].uart;
+  return uart->ie & UART_IP_TXWM ? 1 : 0;
+}
+
+void serial_intr_send_enable(int index)
+{
+  volatile struct tinylance_uart *uart = regs[index].uart;
+  uart->ie |= UART_IP_TXWM;
+}
+
+void serial_intr_send_disable(int index)
+{
+  volatile struct tinylance_uart *uart = regs[index].uart;
+  uart->ie &= ~UART_IP_TXWM;
+}
+
+int serial_intr_is_recv_enable(int index)
+{
+  volatile struct tinylance_uart *uart = regs[index].uart;
+  return uart->ie & UART_IP_RXWM ? 1 : 0;
+}
+
+void serial_intr_recv_enable(int index)
+{
+  volatile struct tinylance_uart *uart = regs[index].uart;
+  uart->ie |= UART_IP_RXWM;
+}
+
+void serial_intr_recv_disable(int index)
+{
+  volatile struct tinylance_uart *uart = regs[index].uart;
+  uart->ie &= ~UART_IP_RXWM;
 }
