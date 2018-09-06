@@ -8,4 +8,7 @@
 
 #define CPU_CLOCK 32500000	/* 32.5 MHz */
 
+typedef uint32_t kz_thread_id_t;
+typedef int (*kz_func_t)(int argc, char *argv[]);
+
 #endif

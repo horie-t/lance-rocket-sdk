@@ -1,50 +1,34 @@
 #include "defines.h"
 #include "encoding.h"
 #include "interrupt.h"
-#include "serial.h"
+#include "kozos.h"
 #include "lib.h"
 
-void handle_m_external_interrupt()
+
+static int start_threads(int argc, char *argv[])
 {
-  int c;
-  static char buf[32];
-  static int len = 0;
-
-  c = getc();
-
-  if (c != '\n') {
-    buf[len++] = c;
-  } else {
-    buf[len++] = '\0';
-    if (!strncmp(buf, "echo ", 5)) {
-      puts(buf + 5);
-      puts("\n");
-    } else {
-      puts("unknown.\n");
-    }
-    puts("> ");			/* プロンプト表示 */
-    len = 0;
-  }
+  kz_run(test08_1_main, "command", 0x100, 0, NULL);
+  return 0;
 }
 
 int main(void)
 {
+  /*
+   * ソフトウェア割込み有効、タイマー割込み有効、外部割込み無効に設定
+   */
   clear_csr(mstatus, MSTATUS_MIE);
 
-  serial_init(SERIAL_DEFAULT_DEVICE);
-  puts("kazos boot succeed!\n");
+  set_csr(mie, MIP_MSIP);
+  set_csr(mie, MIP_MTIP);
+  clear_csr(mie, MIP_MEIP);
   
-  mtvec_init();
-  serial_intr_recv_enable(SERIAL_DEFAULT_DEVICE);
-
-  puts("> ");
-
-  set_csr(mie, MIP_MEIP);
   set_csr(mstatus, MSTATUS_MIE);
-
-  while (1) {
-    asm volatile ("wfi");	/* 割込み待ち */
-  }
   
+  puts("kazos boot succeed!\n");
+
+  /* OSの動作開始 */
+  kz_start(start_threads, "start", 0x100, 0, NULL);
+  /* ここには戻って来ない */
+
   return 0;
 }

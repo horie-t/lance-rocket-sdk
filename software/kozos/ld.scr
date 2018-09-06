@@ -5,7 +5,9 @@ MEMORY
 {
 	ramall(rwx)	: o = 0x80000000, l = 0x8000 /* 32KB */
 	ram(rwx)	: o = 0x80000100, l = 0x7f00 /* ELFヘッダが0x80000000からロードされるので避けている */
-	stack(rw)	: o = 0x80008000, l = 0x0000 /* end of RAM */
+	userstack(rw)	: o = 0x80007500, l = 0x0000 /* ユーザー・スタック */
+	bootstack(rw)	: o = 0x80008000, l = 0x0000 /* 起動処理用スタック(end of RAM) */
+	intrstack(rw)	: o = 0x80008000, l = 0x0000 /* 割込み処理用スタック(end of RAM) */
 }
 
 SECTIONS
@@ -56,7 +58,15 @@ SECTIONS
 	. = ALIGN(4);
 	_end = .;
 
-	.stack : {
-	       stack = .;
-	} > stack
+	.userstack : {
+	       userstack = .;
+	} > userstack
+
+	.bootstack : {
+	       bootstack = .;
+	} > bootstack
+
+	.intrstack : {
+	       intrstack = .;
+	} > intrstack
 }

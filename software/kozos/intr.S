@@ -3,56 +3,79 @@
 
 #define REGBYTES	4
 	
-# 呼び出し側に保存責任があるレジスタを保存
-.macro TRAP_ENTRY
-	  addi sp, sp, -16*REGBYTES
 
-	  sw x1,  0*REGBYTES(sp)
-	  sw x5,  1*REGBYTES(sp)
-	  sw x6,  2*REGBYTES(sp)
-	  sw x7,  3*REGBYTES(sp)
-	  sw x10, 4*REGBYTES(sp)
-	  sw x11, 5*REGBYTES(sp)
-	  sw x12, 6*REGBYTES(sp)
-	  sw x13, 7*REGBYTES(sp)
-	  sw x14, 8*REGBYTES(sp)
-	  sw x15, 9*REGBYTES(sp)
-	  sw x16, 10*REGBYTES(sp)
-	  sw x17, 11*REGBYTES(sp)
-	  sw x28, 12*REGBYTES(sp)
-	  sw x29, 13*REGBYTES(sp)
-	  sw x30, 14*REGBYTES(sp)
-	  sw x31, 15*REGBYTES(sp)
+.macro TRAP_ENTRY
+	# 呼び出し側に保存責任があるレジスタを保存
+	addi sp, sp, -17*REGBYTES
+
+	sw x1,  0*REGBYTES(sp)
+	sw x5,  1*REGBYTES(sp)
+	sw x6,  2*REGBYTES(sp)
+	sw x7,  3*REGBYTES(sp)
+	sw x10, 4*REGBYTES(sp)
+	sw x11, 5*REGBYTES(sp)
+	sw x12, 6*REGBYTES(sp)
+	sw x13, 7*REGBYTES(sp)
+	sw x14, 8*REGBYTES(sp)
+	sw x15, 9*REGBYTES(sp)
+	sw x16, 10*REGBYTES(sp)
+	sw x17, 11*REGBYTES(sp)
+	sw x28, 12*REGBYTES(sp)
+	sw x29, 13*REGBYTES(sp)
+	sw x30, 14*REGBYTES(sp)
+	sw x31, 15*REGBYTES(sp)
+	
+	# 割り込まれたPCをスタックに積む
+	csrr t0, mepc
+	sw t0, 16*REGBYTES(sp)
+
+	# spをハンドラの第一引数に設定
+	mv a0, sp
+	
+	# スタックを切り替え、旧のspをスタックに積む
+	mv t0, sp
+	la sp, intrstack
+	addi sp, sp, -1*REGBYTES
+	sw t0,  0*REGBYTES(sp)
 .endm
 
-# 呼び出し側に保存責任があるレジスタを復元
 .macro TRAP_EXIT
-	  lw x1,  0*REGBYTES(sp)
-	  lw x5,  1*REGBYTES(sp)
-	  lw x6,  2*REGBYTES(sp)
-	  lw x7,  3*REGBYTES(sp)
-	  lw x10, 4*REGBYTES(sp)
-	  lw x11, 5*REGBYTES(sp)
-	  lw x12, 6*REGBYTES(sp)
-	  lw x13, 7*REGBYTES(sp)
-	  lw x14, 8*REGBYTES(sp)
-	  lw x15, 9*REGBYTES(sp)
-	  lw x16, 10*REGBYTES(sp)
-	  lw x17, 11*REGBYTES(sp)
-	  lw x28, 12*REGBYTES(sp)
-	  lw x29, 13*REGBYTES(sp)
-	  lw x30, 14*REGBYTES(sp)
-	  lw x31, 15*REGBYTES(sp)
+	# 元のスタックに切り戻す
+	lw t0,  0*REGBYTES(sp)
+	mv sp, t0
+	
+	# 割り込まれたPCを復元
+	lw t0, 16*REGBYTES(sp)
+	csrw mepc, t0
 
-	  addi sp, sp, 16*REGBYTES
-	  mret
+	# 呼び出し側に保存責任があるレジスタを復元	
+	lw x1,  0*REGBYTES(sp)
+	lw x5,  1*REGBYTES(sp)
+	lw x6,  2*REGBYTES(sp)
+	lw x7,  3*REGBYTES(sp)
+	lw x10, 4*REGBYTES(sp)
+	lw x11, 5*REGBYTES(sp)
+	lw x12, 6*REGBYTES(sp)
+	lw x13, 7*REGBYTES(sp)
+	lw x14, 8*REGBYTES(sp)
+	lw x15, 9*REGBYTES(sp)
+	lw x16, 10*REGBYTES(sp)
+	lw x17, 11*REGBYTES(sp)
+	lw x28, 12*REGBYTES(sp)
+	lw x29, 13*REGBYTES(sp)
+	lw x30, 14*REGBYTES(sp)
+	lw x31, 15*REGBYTES(sp)
+	
+	addi sp, sp, 17*REGBYTES
+	
+	mret
 .endm	
 	
 	.section      	.text.entry	
 	.align	 	8
 	.global 	vtrap_entry
 vtrap_entry: # ハンドラの実体にジャンプする
-	j reserved
+	j sync_trap
 	.align 2
 	j reserved
 	.align 2
@@ -116,7 +139,13 @@ vtrap_entry: # ハンドラの実体にジャンプする
 	.align 2
 	j vlip_Handler15
 
-# スタック退避/復元ラッパー	
+# スタック退避/復元ラッパー
+#同期例外
+sync_trap:
+	TRAP_ENTRY
+	jal handle_sync_trap
+	TRAP_EXIT
+	
 #マシン・ソフトウェア割込み
 vmsi_Handler:
 	TRAP_ENTRY
@@ -235,6 +264,8 @@ vlip_Handler15:
 #unimplemented ISRs trap here
 .weak reserved
 reserved:
+.weak handle_sync_trap
+handle_sync_trap:	
 .weak handle_m_software_interrupt
 handle_m_software_interrupt:
 .weak handle_m_time_interrupt

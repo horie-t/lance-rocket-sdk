@@ -15,6 +15,9 @@
 #define MIP_MTIP            (1 << IRQ_M_TIMER)
 #define MIP_MEIP            (1 << IRQ_M_EXT)
 
+#define CAUSE_USER_ECALL 0x8
+#define CAUSE_SUPERVISOR_ECALL 0x9
+#define CAUSE_MACHINE_ECALL 0xb
 
 #define read_csr(reg) ({ unsigned long __tmp; \
   asm volatile ("csrr %0, " #reg : "=r"(__tmp)); \

@@ -2,7 +2,6 @@
 
 #define MTVEC_VECTORED     0x01
 
-//extern void trap_entry();
 extern void vtrap_entry();
 
 int mtvec_init(void)
