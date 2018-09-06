@@ -2,6 +2,8 @@
 
 本リポジトリは、FreedomをベースとしたRISC-Vである、[Lance Rocket](https://github.com/horie-t/lance-rocket)のソフトウェア開発キット(Software Development Kit: SDK)のリポジトリです。
 
+ソフトウェアの一例として、[KOZOS](http://kozos.jp/kozos/) を [software/kozos/](https://github.com/horie-t/lance-rocket-sdk/tree/master/software/kozos)で移植中です。(8th ステップまで完了)
+
 サブモジュールとして、Lance Rocketのリポジトリを含みます。
 
 ## 開発環境の構築
