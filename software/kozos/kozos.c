@@ -13,7 +13,7 @@
  * @brief スレッド・コンテキスト
  */
 typedef struct _kz_context {
-  uint32_t sp;			/* スタック・ポインタ */
+  uint32_t *sp;			/* スタック・ポインタ */
 } kz_context;
 
 /**
@@ -90,7 +90,7 @@ static int putcurrent(void)
   }
   if (current->flags & KZ_THREAD_FLAG_READY) {
     /* 既に追加済みのはず */
-    return -1;
+    return 1;
   }
 
   if (readyque[current->priority].tail) {
@@ -148,6 +148,7 @@ static kz_thread_id_t thread_run(kz_func_t func, char *name, int priority, int s
 
   /* TCBの初期化 */
   memset(thp, 0, sizeof(*thp));
+  strcpy(thp->name, name);
   thp->next = NULL;
   thp->priority = priority;
   thp->flags = 0;
@@ -179,14 +180,14 @@ static kz_thread_id_t thread_run(kz_func_t func, char *name, int priority, int s
   *(--sp) = 0;			/* x13 */
   *(--sp) = 0;			/* x12 */
   *(--sp) = 0;			/* x11 */
-  *(--sp) = (uint32_t)thp;	/* x10(a1)スレッドのスタート・アップに渡す引数 */
+  *(--sp) = (uint32_t)thp;	/* x10(a0)スレッドのスタート・アップに渡す引数 */
   *(--sp) = 0;			/* x7 */
   *(--sp) = 0;			/* x6 */
   *(--sp) = 0;			/* x5 */
   *(--sp) = 0;			/* x1 */
 
   /* スレッドのコンテキストを設定 */
-  thp->context.sp = (uint32_t)sp;
+  thp->context.sp = sp;
 
   /* システム・コールを呼び出したスレッドをレディー・キューに入れる */
   putcurrent();
@@ -350,14 +351,16 @@ static void softerr_intr(void)
 /**
  * @brief 例外ハンドラ
  */
-void handle_sync_trap(uint32_t sp)
+void handle_sync_trap(uint32_t *sp)
 {
   current->context.sp = sp;
   
   int32_t mcause = read_csr(mcause);
+  
   switch (mcause) {
   case CAUSE_MACHINE_ECALL:
     syscall_intr();
+    *(sp+17) += 4;
     break;
   default:
     softerr_intr();
@@ -395,5 +398,3 @@ void kz_syscall(kz_syscall_type_t type, kz_syscall_param_t *param)
 
   asm volatile ("ecall");
 }
-
-  

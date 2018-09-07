@@ -1,6 +1,7 @@
 #include "defines.h"
 #include "kozos.h"
 #include "syscall.h"
+#include "lib.h"
 
 /*****************************************
  * システム・コール
@@ -15,9 +16,9 @@ kz_thread_id_t kz_run(kz_func_t func, char *name, int priority, int stacksize, i
   param.un.run.stacksize = stacksize;
   param.un.run.argc = argc;
   param.un.run.argv = argv;
-
+  
   kz_syscall(KZ_SYSCALL_TYPE_RUN, &param);
-
+  
   return param.un.run.ret;
 }
 

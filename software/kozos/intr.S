@@ -26,9 +26,9 @@
 	sw x31, 15*REGBYTES(sp)
 	
 	# mstatus.mie, 割り込まれたPCをスタックに積む
-	csrr t0, mstatus
-	andi t0, t0, MSTATUS_MIE
-	sw t0, 16*REGBYTES(sp)
+#	csrr t0, mstatus
+#	andi t0, t0, MSTATUS_MIE
+#	sw t0, 16*REGBYTES(sp)
 	csrr t0, mepc
 	sw t0, 17*REGBYTES(sp)
 
@@ -50,8 +50,8 @@
 	# 割り込まれたPC, mstatus.mieを復元
 	lw t0, 17*REGBYTES(sp)
 	csrw mepc, t0
-	lw t0, 16*REGBYTES(sp)
-	csrs mstatus, t0
+#	lw t0, 16*REGBYTES(sp)
+#	csrs mstatus, t0
 
 	# 呼び出し側に保存責任があるレジスタを復元	
 	lw x1,  0*REGBYTES(sp)

@@ -16,8 +16,6 @@ static int start_threads(int argc, char *argv[])
 
   kz_chpri(15);
   
-  set_csr(mstatus, MSTATUS_MIE);
-
   while (1) {
     asm volatile ("wfi");
   }
@@ -27,8 +25,6 @@ static int start_threads(int argc, char *argv[])
 
 int main(void)
 {
-  puts("kozos boot start.\n");
-
   /*
    * ソフトウェア割込み有効、タイマー割込み有効、外部割込み無効に設定
    */
@@ -42,6 +38,7 @@ int main(void)
 
   /* OSの動作開始 */
   kz_start(start_threads, "idle", 0, 0x100, 0, NULL);
+  set_csr(mstatus, MSTATUS_MIE);
   /* ここには来ない */
   
   return 0;

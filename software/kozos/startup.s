@@ -15,9 +15,11 @@ _start:
 dispatch:
 	lw sp, 0(a0)
 	
-	# mepcを復元
-	lw t0, 16*REGBYTES(sp)
+	# 割り込まれたPC, mstatus.mieを復元
+	lw t0, 17*REGBYTES(sp)
 	csrw mepc, t0
+#	lw t0, 16*REGBYTES(sp)
+#	csrs mstatus, t0
 	
 	# 呼び出し側に保存責任があるレジスタを復元	
 	lw x1,  0*REGBYTES(sp)
@@ -37,6 +39,6 @@ dispatch:
 	lw x30, 14*REGBYTES(sp)
 	lw x31, 15*REGBYTES(sp)
 	
-	addi sp, sp, 17*REGBYTES
+	addi sp, sp, 18*REGBYTES
 	
 	mret
