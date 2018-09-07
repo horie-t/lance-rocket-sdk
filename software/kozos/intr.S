@@ -2,11 +2,11 @@
 // See LICENSE.HORIE_Tetsuya for license details
 
 #define REGBYTES	4
-	
+#define MSTATUS_MIE     0x00000008
 
 .macro TRAP_ENTRY
 	# 呼び出し側に保存責任があるレジスタを保存
-	addi sp, sp, -17*REGBYTES
+	addi sp, sp, -18*REGBYTES
 
 	sw x1,  0*REGBYTES(sp)
 	sw x5,  1*REGBYTES(sp)
@@ -25,9 +25,12 @@
 	sw x30, 14*REGBYTES(sp)
 	sw x31, 15*REGBYTES(sp)
 	
-	# 割り込まれたPCをスタックに積む
-	csrr t0, mepc
+	# mstatus.mie, 割り込まれたPCをスタックに積む
+	csrr t0, mstatus
+	andi t0, t0, MSTATUS_MIE
 	sw t0, 16*REGBYTES(sp)
+	csrr t0, mepc
+	sw t0, 17*REGBYTES(sp)
 
 	# spをハンドラの第一引数に設定
 	mv a0, sp
@@ -44,9 +47,11 @@
 	lw t0,  0*REGBYTES(sp)
 	mv sp, t0
 	
-	# 割り込まれたPCを復元
-	lw t0, 16*REGBYTES(sp)
+	# 割り込まれたPC, mstatus.mieを復元
+	lw t0, 17*REGBYTES(sp)
 	csrw mepc, t0
+	lw t0, 16*REGBYTES(sp)
+	csrs mstatus, t0
 
 	# 呼び出し側に保存責任があるレジスタを復元	
 	lw x1,  0*REGBYTES(sp)
@@ -66,7 +71,7 @@
 	lw x30, 14*REGBYTES(sp)
 	lw x31, 15*REGBYTES(sp)
 	
-	addi sp, sp, 17*REGBYTES
+	addi sp, sp, 18*REGBYTES
 	
 	mret
 .endm	
