@@ -45,6 +45,27 @@ typedef struct _kz_thread {
   kz_context context;
 } kz_thread;
 
+/**
+ * @brief メッセージ・バッファ
+ */
+typedef struct _kz_msgbuf {
+  struct _kz_msgbuf *next;
+  kz_thread *sender;		/* メッセージを送信したスレッド */
+  struct {
+    int size;
+    char *p;
+  } param;
+} kz_msgbuf;
+
+/**
+ * @brief メッセージ・ボックス
+ */
+typedef struct _kz_msgbox {
+  kz_thread *receiver;
+  kz_msgbuf *head;
+  kz_msgbuf *tail;
+} kz_msgbox;
+
 /* スレッドのレディー・キュー */
 static struct {
   kz_thread *head;
@@ -56,6 +77,9 @@ static kz_thread *current;
 
 /* タスク・コントロール・ブロック */
 static kz_thread threads[THREAD_NUM];
+
+/* メッセージ・ボックス */
+static kz_msgbox msgboxes[MSGBOX_ID_NUM];
 
 void dispatch(kz_context *context);
 
@@ -103,6 +127,54 @@ static int putcurrent(void)
   current->flags |= KZ_THREAD_FLAG_READY;
 
   return 0;
+}
+static void sendmsg(kz_msgbox *mboxp, kz_thread *thp, int size, char *p)
+{
+  kz_msgbuf *mp;
+
+  /* メッセージ・バッファの作成 */
+  mp = (kz_msgbuf *)kzmem_alloc(sizeof(*mp));
+  if (mp == NULL)
+    kz_sysdown();
+  mp->next       = NULL;
+  mp->sender     = thp;
+  mp->param.size = size;
+  mp->param.p    = p;
+
+  /* メッセージ・ボックスの末尾にメッセージを接続する */
+  if (mboxp->tail) {
+    mboxp->tail->next = mp;
+  } else {
+    mboxp->head = mp;
+  }
+  mboxp->tail = mp;
+}
+
+static void recvmsg(kz_msgbox *mboxp)
+{
+  kz_msgbuf *mp;
+  kz_syscall_param_t *p;
+
+  /* メッセージ・ボックスの先頭にあるメッセージを抜き出す */
+  mp = mboxp->head;
+  mboxp->head = mp->next;
+  if (mboxp->head == NULL)
+    mboxp->tail = NULL;
+  mp->next = NULL;
+
+  /* メッセージを受信するスレッドに返す値を設定する */
+  p = mboxp->receiver->syscall.param;
+  p->un.recv.ret = (kz_thread_id_t)mp->sender;
+  if (p->un.recv.sizep)
+    *(p->un.recv.sizep) = mp->param.size;
+  if (p->un.recv.pp)
+    *(p->un.recv.pp) = mp->param.p;
+
+  /* 受信待ちスレッドはいなくなったのでNULLに戻す */
+  mboxp->receiver = NULL;
+
+  /* メッセージ・バッファの解放 */
+  kzmem_free(mp);
 }
 
 /**
@@ -278,6 +350,48 @@ static int thread_kmfree(char *p)
   return 0;
 }
 
+static int thread_send(kz_msgbox_id_t id, int size, char *p)
+{
+  kz_msgbox *mboxp = &msgboxes[id];
+
+  putcurrent();
+  sendmsg(mboxp, current, size, p);
+
+  /* 受信待ちスレッドが存在している場合には受信処理を行う。 */
+  if (mboxp->receiver) {
+    current = mboxp->receiver;
+    recvmsg(mboxp);
+    putcurrent();
+  }
+
+  return size;
+}
+
+static kz_thread_id_t thread_recv(kz_msgbox_id_t id, int *sizep, char **pp)
+{
+  kz_msgbox *mboxp = &msgboxes[id];
+
+  if (mboxp->receiver)
+    /* 他スレッドがすでに受信待ちしている */
+    kz_sysdown();
+
+  mboxp->receiver = current;
+
+  if (mboxp->head == NULL) {
+    /* メッセージ・ボックスにメッセージがないので、スレッドをスリープさせる */
+    return -1;
+  }
+
+  /* メッセージを受信し、レディー状態に戻す */
+  recvmsg(mboxp);
+  putcurrent();
+
+  return current->syscall.param->un.recv.ret;
+}
+
+
+
+
 static void call_functions(kz_syscall_type_t type, kz_syscall_param_t *p)
 {
   /* システム・コール実行中にcurrentが書き換わるので注意 */
@@ -310,6 +424,12 @@ static void call_functions(kz_syscall_type_t type, kz_syscall_param_t *p)
     break;
   case KZ_SYSCALL_TYPE_KMFREE:
     p->un.kmfree.ret = thread_kmfree(p->un.kmfree.p);
+    break;
+  case KZ_SYSCALL_TYPE_SEND:
+    p->un.send.ret = thread_send(p->un.send.id, p->un.send.size, p->un.send.p);
+    break;
+  case KZ_SYSCALL_TYPE_RECV:
+    p->un.recv.ret = thread_recv(p->un.recv.id, p->un.recv.sizep, p->un.recv.pp);
     break;
   default:
     break;
@@ -398,6 +518,7 @@ void kz_start(kz_func_t func, char *name, int priority, int stacksize, int argc,
 
   memset(readyque, 0, sizeof(readyque));
   memset(threads, 0, sizeof(threads));
+  memset(msgboxes, 0, sizeof(msgboxes));
   
   mtvec_init();
 

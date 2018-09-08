@@ -11,4 +11,10 @@
 typedef uint32_t kz_thread_id_t;
 typedef int (*kz_func_t)(int argc, char *argv[]);
 
+typedef enum {
+  MSGBOX_ID_MSGBOX1 = 0,
+  MSGBOX_ID_MSGBOX2,
+  MSGBOX_ID_NUM
+} kz_msgbox_id_t;
+
 #endif

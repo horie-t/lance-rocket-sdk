@@ -79,3 +79,23 @@ int kz_kmfree(void *p)
   kz_syscall(KZ_SYSCALL_TYPE_KMFREE, &param);
   return param.un.kmfree.ret;
 }
+
+int kz_send(kz_msgbox_id_t id, int size, char *p)
+{
+  kz_syscall_param_t param;
+  param.un.send.id = id;
+  param.un.send.size = size;
+  param.un.send.p = p;
+  kz_syscall(KZ_SYSCALL_TYPE_SEND, &param);
+  return param.un.send.ret;
+}
+
+kz_thread_id_t kz_recv(kz_msgbox_id_t id, int *sizep, char **pp)
+{
+  kz_syscall_param_t param;
+  param.un.recv.id = id;
+  param.un.recv.sizep = sizep;
+  param.un.recv.pp = pp;
+  kz_syscall(KZ_SYSCALL_TYPE_RECV, &param);
+  return param.un.recv.ret;
+}
