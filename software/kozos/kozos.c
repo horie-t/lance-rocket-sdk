@@ -3,6 +3,7 @@
 #include "kozos.h"
 #include "interrupt.h"
 #include "syscall.h"
+#include "memory.h"
 #include "lib.h"
 
 #define THREAD_NUM 6		/* TCBの個数 */
@@ -264,6 +265,19 @@ static int thread_chpri(int priority)
   return old;
 }
 
+static void *thread_kmalloc(int size)
+{
+  putcurrent();
+  return kzmem_alloc(size);
+}
+
+static int thread_kmfree(char *p)
+{
+  kzmem_free(p);
+  putcurrent();
+  return 0;
+}
+
 static void call_functions(kz_syscall_type_t type, kz_syscall_param_t *p)
 {
   /* システム・コール実行中にcurrentが書き換わるので注意 */
@@ -290,6 +304,12 @@ static void call_functions(kz_syscall_type_t type, kz_syscall_param_t *p)
     break;
   case KZ_SYSCALL_TYPE_CHPRI:
     p->un.chpri.ret = thread_chpri(p->un.chpri.priority);
+    break;
+  case KZ_SYSCALL_TYPE_KMALLOC:
+    p->un.kmalloc.ret = thread_kmalloc(p->un.kmalloc.size);
+    break;
+  case KZ_SYSCALL_TYPE_KMFREE:
+    p->un.kmfree.ret = thread_kmfree(p->un.kmfree.p);
     break;
   default:
     break;
@@ -372,6 +392,8 @@ void handle_sync_trap(uint32_t *sp)
 
 void kz_start(kz_func_t func, char *name, int priority, int stacksize, int argc, char *argv[])
 {
+  kzmem_init();
+  
   current = NULL;
 
   memset(readyque, 0, sizeof(readyque));

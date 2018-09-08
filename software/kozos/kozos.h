@@ -49,6 +49,16 @@ kz_thread_id_t kz_getid();
  */
 int kz_chpri(int priority);
 
+/**
+ * @brief 動的メモリの獲得
+ */
+void *kz_kmalloc(int size);
+
+/**
+ * @brief メモリの解放
+ */
+int kz_kmfree(void *p);
+
 /*****************************************
  * ライブラリ関数
  *****************************************/
@@ -70,12 +80,6 @@ void kz_syscall(kz_syscall_type_t type, kz_syscall_param_t *param);
 /**
  * @brief ユーザ・スレッド
  */
-int test09_1_main(int argc, char *argv[]);
-int test09_2_main(int argc, char *argv[]);
-int test09_3_main(int argc, char *argv[]);
-
-extern kz_thread_id_t test09_1_id;
-extern kz_thread_id_t test09_2_id;
-extern kz_thread_id_t test09_3_id;
+int test10_1_main(int argc, char *argv[]);
 
 #endif

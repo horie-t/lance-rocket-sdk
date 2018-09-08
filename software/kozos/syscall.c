@@ -63,3 +63,19 @@ int kz_chpri(int priority)
   kz_syscall(KZ_SYSCALL_TYPE_CHPRI, &param);
   return param.un.chpri.ret;
 }
+
+void *kz_kmalloc(int size)
+{
+  kz_syscall_param_t param;
+  param.un.kmalloc.size = size;
+  kz_syscall(KZ_SYSCALL_TYPE_KMALLOC, &param);
+  return param.un.kmalloc.ret;
+}
+
+int kz_kmfree(void *p)
+{
+  kz_syscall_param_t param;
+  param.un.kmfree.p = p;
+  kz_syscall(KZ_SYSCALL_TYPE_KMFREE, &param);
+  return param.un.kmfree.ret;
+}
