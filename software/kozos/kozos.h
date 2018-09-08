@@ -59,6 +59,16 @@ void *kz_kmalloc(int size);
  */
 int kz_kmfree(void *p);
 
+/**
+ * @brief メッセージの送信
+ */
+int kz_send(kz_msgbox_id_t id, int size, char *p);
+
+/**
+ * @brief メッセージの受信
+ */
+kz_thread_id_t kz_recv(kz_msgbox_id_t id, int *sizep, char **pp);
+
 /*****************************************
  * ライブラリ関数
  *****************************************/
@@ -80,6 +90,7 @@ void kz_syscall(kz_syscall_type_t type, kz_syscall_param_t *param);
 /**
  * @brief ユーザ・スレッド
  */
-int test10_1_main(int argc, char *argv[]);
+int test11_1_main(int argc, char *argv[]);
+int test11_2_main(int argc, char *argv[]);
 
 #endif
