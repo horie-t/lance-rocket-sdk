@@ -6,14 +6,19 @@
 
 static int start_threads(int argc, char *argv[])
 {
-  kz_run(test08_1_main, "command", 0x100, 0, NULL);
+  kz_run(test10_1_main, "test10_1", 1, 0x100, 0, NULL);
+
+  kz_chpri(15);
+  
+  while (1) {
+    asm volatile ("wfi");
+  }
+  
   return 0;
 }
 
 int main(void)
 {
-  puts("kozos boot start.\n");
-
   /*
    * ソフトウェア割込み有効、タイマー割込み有効、外部割込み無効に設定
    */
@@ -26,7 +31,7 @@ int main(void)
   puts("kazos boot succeed!\n");
 
   /* OSの動作開始 */
-  kz_start(start_threads, "start", 0x100, 0, NULL);
+  kz_start(start_threads, "idle", 0, 0x100, 0, NULL);
   set_csr(mstatus, MSTATUS_MIE);
   /* ここには来ない */
   
