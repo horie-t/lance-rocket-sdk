@@ -4,13 +4,17 @@
 #include "kozos.h"
 #include "lib.h"
 
+/**
+ * @brief システム・タスクとユーザ・タスクの起動
+ */
 static int start_threads(int argc, char *argv[])
 {
-  kz_run(test11_1_main, "test11_1", 1, 0x100, 0, NULL);
-  kz_run(test11_2_main, "test11_2", 2, 0x100, 0, NULL);
+  kz_run(consdrv_main, "consdrv", 1, 0x100, 0, NULL);
+  kz_run(command_main, "command", 8, 0x100, 0, NULL);
 
   kz_chpri(15);
   
+  set_csr(mstatus, MSTATUS_MIE);
   while (1) {
     asm volatile ("wfi");
   }
@@ -33,7 +37,6 @@ int main(void)
 
   /* OSの動作開始 */
   kz_start(start_threads, "idle", 0, 0x100, 0, NULL);
-  set_csr(mstatus, MSTATUS_MIE);
   /* ここには来ない */
   
   return 0;

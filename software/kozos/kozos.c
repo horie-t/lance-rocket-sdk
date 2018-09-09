@@ -1,6 +1,7 @@
 #include "defines.h"
 #include "encoding.h"
 #include "kozos.h"
+#include "intr.h"
 #include "interrupt.h"
 #include "syscall.h"
 #include "memory.h"
@@ -77,6 +78,9 @@ static kz_thread *current;
 
 /* タスク・コントロール・ブロック */
 static kz_thread threads[THREAD_NUM];
+
+/* 割込みハンドラ */
+static kz_handler_t handlers[SOFTVEC_TYPE_NUM];
 
 /* メッセージ・ボックス */
 static kz_msgbox msgboxes[MSGBOX_ID_NUM];
@@ -389,7 +393,13 @@ static kz_thread_id_t thread_recv(kz_msgbox_id_t id, int *sizep, char **pp)
   return current->syscall.param->un.recv.ret;
 }
 
+static int thread_setintr(softvec_type_t type, kz_handler_t handler)
+{
+  handlers[type] = handler;
+  putcurrent();
 
+  return 0;
+}
 
 
 static void call_functions(kz_syscall_type_t type, kz_syscall_param_t *p)
@@ -431,6 +441,9 @@ static void call_functions(kz_syscall_type_t type, kz_syscall_param_t *p)
   case KZ_SYSCALL_TYPE_RECV:
     p->un.recv.ret = thread_recv(p->un.recv.id, p->un.recv.sizep, p->un.recv.pp);
     break;
+  case KZ_SYSCALL_TYPE_SETINTR:
+    p->un.setintr.ret = thread_setintr(p->un.setintr.type, p->un.setintr.handler);
+    break;
   default:
     break;
   }
@@ -442,6 +455,15 @@ static void call_functions(kz_syscall_type_t type, kz_syscall_param_t *p)
 static void syscall_proc(kz_syscall_type_t type, kz_syscall_param_t *p)
 {
   getcurrent();
+  call_functions(type, p);
+}
+
+/**
+ * @brief サービス・コールの処理
+ */
+static void srvcall_proc(kz_syscall_type_t type, kz_syscall_param_t *p)
+{
+  current = NULL;
   call_functions(type, p);
 }
 
@@ -510,6 +532,19 @@ void handle_sync_trap(uint32_t *sp)
   dispatch(&current->context);
 }
 
+/**
+ * @brief 外部割込み
+ */
+void handle_m_external_interrupt(uint32_t *sp)
+{
+  current->context.sp = sp;
+  
+  handlers[SOFTVEC_TYPE_SERINTR]();
+  
+  schedule();
+  dispatch(&current->context);
+}
+
 void kz_start(kz_func_t func, char *name, int priority, int stacksize, int argc, char *argv[])
 {
   kzmem_init();
@@ -540,4 +575,9 @@ void kz_syscall(kz_syscall_type_t type, kz_syscall_param_t *param)
   current->syscall.param = param;
 
   asm volatile ("ecall");
+}
+
+void kz_srvcall(kz_syscall_type_t type, kz_syscall_param_t *param)
+{
+  srvcall_proc(type, param);
 }

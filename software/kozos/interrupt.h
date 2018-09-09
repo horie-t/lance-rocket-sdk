@@ -4,4 +4,6 @@
 // mtvecレジスタの初期化
 int mtvec_init(void);
 
+typedef short softvec_type_t;
+
 #endif
