@@ -135,6 +135,7 @@ static int consdrv_init(void)
 static int consdrv_command(struct consreg *cons, kz_thread_id_t id,
 			   int index, int size, char *command)
 {
+  puts("consdrv_command command[0]: "); putxval(command[0], 0); puts("\n");
   switch (command[0]) {
   case CONSDRV_CMD_USE:
     cons->id = id;

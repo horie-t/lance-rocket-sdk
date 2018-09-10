@@ -30,8 +30,8 @@ int main(void)
   clear_csr(mstatus, MSTATUS_MIE);
 
   set_csr(mie, MIP_MSIP);
-  set_csr(mie, MIP_MTIP);
-  clear_csr(mie, MIP_MEIP);
+  clear_csr(mie, MIP_MTIP);
+  set_csr(mie, MIP_MEIP);
   
   puts("kazos boot succeed!\n");
 
