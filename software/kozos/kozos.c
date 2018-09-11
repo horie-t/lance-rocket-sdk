@@ -1,6 +1,7 @@
 #include "defines.h"
 #include "encoding.h"
 #include "kozos.h"
+#include "intr.h"
 #include "interrupt.h"
 #include "syscall.h"
 #include "memory.h"
@@ -77,6 +78,9 @@ static kz_thread *current;
 
 /* タスク・コントロール・ブロック */
 static kz_thread threads[THREAD_NUM];
+
+/* 割込みハンドラ */
+static kz_handler_t handlers[SOFTVEC_TYPE_NUM];
 
 /* メッセージ・ボックス */
 static kz_msgbox msgboxes[MSGBOX_ID_NUM];
@@ -246,6 +250,16 @@ static kz_thread_id_t thread_run(kz_func_t func, char *name, int priority, int s
   *(--sp) = 0;			/* x30 */
   *(--sp) = 0;			/* x29 */
   *(--sp) = 0;			/* x28 */
+  *(--sp) = 0;			/* x27 */
+  *(--sp) = 0;			/* x26 */
+  *(--sp) = 0;			/* x25 */
+  *(--sp) = 0;			/* x24 */
+  *(--sp) = 0;			/* x23 */
+  *(--sp) = 0;			/* x22 */
+  *(--sp) = 0;			/* x21 */
+  *(--sp) = 0;			/* x20 */
+  *(--sp) = 0;			/* x19 */
+  *(--sp) = 0;			/* x18 */
   *(--sp) = 0;			/* x17 */
   *(--sp) = 0;			/* x16 */
   *(--sp) = 0;			/* x15 */
@@ -254,10 +268,16 @@ static kz_thread_id_t thread_run(kz_func_t func, char *name, int priority, int s
   *(--sp) = 0;			/* x12 */
   *(--sp) = 0;			/* x11 */
   *(--sp) = (uint32_t)thp;	/* x10(a0)スレッドのスタート・アップに渡す引数 */
+  *(--sp) = 0;			/* x9 */
+  *(--sp) = 0;			/* x8 */
   *(--sp) = 0;			/* x7 */
   *(--sp) = 0;			/* x6 */
   *(--sp) = 0;			/* x5 */
+  *(--sp) = 0;			/* x4 */
+  *(--sp) = 0;			/* x3 */
+  *(--sp) = 0;			/* x2 */
   *(--sp) = 0;			/* x1 */
+  *(--sp) = 0;			/* x0 */
 
   /* スレッドのコンテキストを設定 */
   thp->context.sp = sp;
@@ -389,7 +409,13 @@ static kz_thread_id_t thread_recv(kz_msgbox_id_t id, int *sizep, char **pp)
   return current->syscall.param->un.recv.ret;
 }
 
+static int thread_setintr(softvec_type_t type, kz_handler_t handler)
+{
+  handlers[type] = handler;
+  putcurrent();
 
+  return 0;
+}
 
 
 static void call_functions(kz_syscall_type_t type, kz_syscall_param_t *p)
@@ -431,6 +457,9 @@ static void call_functions(kz_syscall_type_t type, kz_syscall_param_t *p)
   case KZ_SYSCALL_TYPE_RECV:
     p->un.recv.ret = thread_recv(p->un.recv.id, p->un.recv.sizep, p->un.recv.pp);
     break;
+  case KZ_SYSCALL_TYPE_SETINTR:
+    p->un.setintr.ret = thread_setintr(p->un.setintr.type, p->un.setintr.handler);
+    break;
   default:
     break;
   }
@@ -442,6 +471,15 @@ static void call_functions(kz_syscall_type_t type, kz_syscall_param_t *p)
 static void syscall_proc(kz_syscall_type_t type, kz_syscall_param_t *p)
 {
   getcurrent();
+  call_functions(type, p);
+}
+
+/**
+ * @brief サービス・コールの処理
+ */
+static void srvcall_proc(kz_syscall_type_t type, kz_syscall_param_t *p)
+{
+  current = NULL;
   call_functions(type, p);
 }
 
@@ -479,10 +517,11 @@ static void syscall_intr(void)
 /**
  * @brief ソフトウェア・エラーの発生
  */
-static void softerr_intr(void)
+static void softerr_intr(int32_t mcause, int32_t mepc)
 {
   puts(current->name);
-  puts(" DOWN.\n");
+  puts(" DOWN. mcause: "); putxval(mcause, 0);
+  puts(" mepc: "); putxval(mepc, 0); puts("\n");
 
   getcurrent();
   thread_exit();
@@ -496,17 +535,35 @@ void handle_sync_trap(uint32_t *sp)
   current->context.sp = sp;
   
   int32_t mcause = read_csr(mcause);
+  int32_t mepc = read_csr(mepc);
   
   switch (mcause) {
   case CAUSE_MACHINE_ECALL:
+    *(sp+33) += 4;		/* ecall命令の次の命令から再開させる */
     syscall_intr();
-    *(sp+17) += 4;
     break;
   default:
-    softerr_intr();
+    softerr_intr(mcause, mepc);
   }
   
   schedule();
+  dispatch(&current->context);
+}
+
+/**
+ * @brief 外部割込み
+ */
+void handle_m_external_interrupt(uint32_t *sp)
+{
+  // ここの値を一旦読んで完了を通知しないと、割込みが発生し続ける。
+  uint32_t plic_intr_num = *(volatile uint32_t*)(PLIC_CTRL_ADDR + PLIC_CLAIM_OFFSET);
+
+  current->context.sp = sp;
+  
+  handlers[SOFTVEC_TYPE_SERINTR]();
+  
+  schedule();
+  *(volatile uint32_t*)(PLIC_CTRL_ADDR + PLIC_CLAIM_OFFSET) = plic_intr_num;
   dispatch(&current->context);
 }
 
@@ -540,4 +597,9 @@ void kz_syscall(kz_syscall_type_t type, kz_syscall_param_t *param)
   current->syscall.param = param;
 
   asm volatile ("ecall");
+}
+
+void kz_srvcall(kz_syscall_type_t type, kz_syscall_param_t *param)
+{
+  srvcall_proc(type, param);
 }

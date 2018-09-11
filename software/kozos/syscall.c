@@ -1,5 +1,6 @@
 #include "defines.h"
 #include "kozos.h"
+#include "interrupt.h"
 #include "syscall.h"
 #include "lib.h"
 
@@ -98,4 +99,50 @@ kz_thread_id_t kz_recv(kz_msgbox_id_t id, int *sizep, char **pp)
   param.un.recv.pp = pp;
   kz_syscall(KZ_SYSCALL_TYPE_RECV, &param);
   return param.un.recv.ret;
+}
+
+int kz_setintr(softvec_type_t type, kz_handler_t handler)
+{
+  kz_syscall_param_t param;
+  param.un.setintr.type = type;
+  param.un.setintr.handler = handler;
+  kz_syscall(KZ_SYSCALL_TYPE_SETINTR, &param);
+  return param.un.setintr.ret;
+}
+
+/*****************************************
+ * サービス・コール
+ *****************************************/
+int kx_wakeup(kz_thread_id_t id)
+{
+  kz_syscall_param_t param;
+  param.un.wakeup.id = id;
+  kz_srvcall(KZ_SYSCALL_TYPE_WAKEUP, &param);
+  return param.un.wakeup.ret;
+}
+
+void *kx_kmalloc(int size)
+{
+  kz_syscall_param_t param;
+  param.un.kmalloc.size = size;
+  kz_srvcall(KZ_SYSCALL_TYPE_KMALLOC, &param);
+  return param.un.kmalloc.ret;
+}
+
+int kx_kmfree(void *p)
+{
+  kz_syscall_param_t param;
+  param.un.kmfree.p = p;
+  kz_srvcall(KZ_SYSCALL_TYPE_KMFREE, &param);
+  return param.un.kmfree.ret;
+}
+
+int kx_send(kz_msgbox_id_t id, int size, char *p)
+{
+  kz_syscall_param_t param;
+  param.un.send.id = id;
+  param.un.send.size = size;
+  param.un.send.p = p;
+  kz_srvcall(KZ_SYSCALL_TYPE_SEND, &param);
+  return param.un.send.ret;
 }

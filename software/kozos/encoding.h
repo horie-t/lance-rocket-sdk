@@ -19,6 +19,19 @@
 #define CAUSE_SUPERVISOR_ECALL 0x9
 #define CAUSE_MACHINE_ECALL 0xb
 
+#define SERIAL_PLIC_SOURCE 3
+
+#define PLIC_CTRL_ADDR 		0x0C000000
+#define PLIC_PRIORITY_OFFSET	0x0000
+#define PLIC_ENABLE_OFFSET	0x2000
+#define PLIC_CLAIM_OFFSET       0x200004
+
+#define GPIO_CTRL_ADDR  0x10012000
+#define GPIO_IOF_EN     (0x38)
+#define GPIO_IOF_SEL    (0x3C)
+#define IOF0_UART0_MASK         0x00030000
+
+
 #define read_csr(reg) ({ unsigned long __tmp; \
   asm volatile ("csrr %0, " #reg : "=r"(__tmp)); \
   __tmp; })
