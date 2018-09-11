@@ -501,10 +501,11 @@ static void syscall_intr(void)
 /**
  * @brief ソフトウェア・エラーの発生
  */
-static void softerr_intr(void)
+static void softerr_intr(int32_t mcause, int32_t mepc)
 {
   puts(current->name);
-  puts(" DOWN.\n");
+  puts(" DOWN. mcause: "); putxval(mcause, 0);
+  puts(" mepc: "); putxval(mepc, 0); puts("\n");
 
   getcurrent();
   thread_exit();
@@ -518,14 +519,15 @@ void handle_sync_trap(uint32_t *sp)
   current->context.sp = sp;
   
   int32_t mcause = read_csr(mcause);
+  int32_t mepc = read_csr(mepc);
   
   switch (mcause) {
   case CAUSE_MACHINE_ECALL:
-    syscall_intr();
     *(sp+17) += 4;
+    syscall_intr();
     break;
   default:
-    softerr_intr();
+    softerr_intr(mcause, mepc);
   }
   
   schedule();
