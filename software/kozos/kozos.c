@@ -250,6 +250,16 @@ static kz_thread_id_t thread_run(kz_func_t func, char *name, int priority, int s
   *(--sp) = 0;			/* x30 */
   *(--sp) = 0;			/* x29 */
   *(--sp) = 0;			/* x28 */
+  *(--sp) = 0;			/* x27 */
+  *(--sp) = 0;			/* x26 */
+  *(--sp) = 0;			/* x25 */
+  *(--sp) = 0;			/* x24 */
+  *(--sp) = 0;			/* x23 */
+  *(--sp) = 0;			/* x22 */
+  *(--sp) = 0;			/* x21 */
+  *(--sp) = 0;			/* x20 */
+  *(--sp) = 0;			/* x19 */
+  *(--sp) = 0;			/* x18 */
   *(--sp) = 0;			/* x17 */
   *(--sp) = 0;			/* x16 */
   *(--sp) = 0;			/* x15 */
@@ -258,10 +268,16 @@ static kz_thread_id_t thread_run(kz_func_t func, char *name, int priority, int s
   *(--sp) = 0;			/* x12 */
   *(--sp) = 0;			/* x11 */
   *(--sp) = (uint32_t)thp;	/* x10(a0)スレッドのスタート・アップに渡す引数 */
+  *(--sp) = 0;			/* x9 */
+  *(--sp) = 0;			/* x8 */
   *(--sp) = 0;			/* x7 */
   *(--sp) = 0;			/* x6 */
   *(--sp) = 0;			/* x5 */
+  *(--sp) = 0;			/* x4 */
+  *(--sp) = 0;			/* x3 */
+  *(--sp) = 0;			/* x2 */
   *(--sp) = 0;			/* x1 */
+  *(--sp) = 0;			/* x0 */
 
   /* スレッドのコンテキストを設定 */
   thp->context.sp = sp;
@@ -523,7 +539,7 @@ void handle_sync_trap(uint32_t *sp)
   
   switch (mcause) {
   case CAUSE_MACHINE_ECALL:
-    *(sp+17) += 4;
+    *(sp+33) += 4;
     syscall_intr();
     break;
   default:

@@ -150,7 +150,6 @@ static int consdrv_command(struct consreg *cons, kz_thread_id_t id,
 
   case CONSDRV_CMD_WRITE:
     clear_csr(mstatus, MSTATUS_MIE);
-    puts("");			/* 呼ばないと、何故かプロンプトが表示されない */
     send_string(cons, command + 1, size - 1);
     set_csr(mstatus, MSTATUS_MIE);
     break;
