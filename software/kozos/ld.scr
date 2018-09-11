@@ -5,7 +5,7 @@ MEMORY
 {
 	ramall(rwx)	: o = 0x80000000, l = 0x8000 /* 32KB */
 	ram(rwx)	: o = 0x80000100, l = 0x7f00 /* ELFヘッダが0x80000000からロードされるので避けている */
-	userstack(rw)	: o = 0x80007000, l = 0x0000 /* ユーザー・スタック */
+	userstack(rw)	: o = 0x80007500, l = 0x0000 /* ユーザー・スタック */
 	bootstack(rw)	: o = 0x80008000, l = 0x0000 /* 起動処理用スタック(end of RAM) */
 	intrstack(rw)	: o = 0x80008000, l = 0x0000 /* 割込み処理用スタック(end of RAM) */
 }

@@ -539,7 +539,7 @@ void handle_sync_trap(uint32_t *sp)
   
   switch (mcause) {
   case CAUSE_MACHINE_ECALL:
-    *(sp+33) += 4;
+    *(sp+33) += 4;		/* ecall命令の次の命令から再開させる */
     syscall_intr();
     break;
   default:
@@ -555,14 +555,15 @@ void handle_sync_trap(uint32_t *sp)
  */
 void handle_m_external_interrupt(uint32_t *sp)
 {
-  uint32_t plic = *(volatile uint32_t*)(0x0C000000 + 0x200004);
+  // ここの値を一旦読んで完了を通知しないと、割込みが発生し続ける。
+  uint32_t plic_intr_num = *(volatile uint32_t*)(PLIC_CTRL_ADDR + PLIC_CLAIM_OFFSET);
 
   current->context.sp = sp;
   
   handlers[SOFTVEC_TYPE_SERINTR]();
   
   schedule();
-  *(volatile uint32_t*)(0x0C000000 + 0x200004) = plic;
+  *(volatile uint32_t*)(PLIC_CTRL_ADDR + PLIC_CLAIM_OFFSET) = plic_intr_num;
   dispatch(&current->context);
 }
 

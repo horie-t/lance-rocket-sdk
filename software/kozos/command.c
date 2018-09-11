@@ -43,7 +43,7 @@ int command_main(int argc, char *argv[])
     send_write("command> ");
     
     kz_recv(MSGBOX_ID_CONSINPUT, &size, &p);
-    p[size] = '\0';
+    p[size] = '\0';		/* 配列外をアクセスしてしまっているが... */
 
     if (!strncmp(p, "echo ", 5)) {
       send_write(p + 5);
