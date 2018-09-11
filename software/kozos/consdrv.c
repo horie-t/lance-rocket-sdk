@@ -83,7 +83,6 @@ static int consdrv_intrproc(struct consreg *cons)
 	memcpy(p, cons->recv_buf, cons->recv_len);
 	kx_send(MSGBOX_ID_CONSINPUT, cons->recv_len, p);
 	cons->recv_len = 0;
-	*(volatile uint32_t*)(0x0C000000 + 0x200004);
       }
     }
   }

@@ -555,11 +555,14 @@ void handle_sync_trap(uint32_t *sp)
  */
 void handle_m_external_interrupt(uint32_t *sp)
 {
+  uint32_t plic = *(volatile uint32_t*)(0x0C000000 + 0x200004);
+
   current->context.sp = sp;
   
   handlers[SOFTVEC_TYPE_SERINTR]();
   
   schedule();
+  *(volatile uint32_t*)(0x0C000000 + 0x200004) = plic;
   dispatch(&current->context);
 }
 
